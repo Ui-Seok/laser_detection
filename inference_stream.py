@@ -1,33 +1,50 @@
 import cv2
+import argparse
 
 from ultralytics import YOLO
 
-# model path
-ckpt_path = "runs/detect/train8/weights/best.pt"
 
-# Load a model
-model = YOLO(ckpt_path)
-
-# Open the video file
-video_path = ""
-cap = cv2.VideoCapture(video_path)
-
-# Streaming
-while cap.isOpened():
-    let, frame = cap.read()
+def parse_opt():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--checkpoint', type=str, required=True, help="model checkpoint path")
+    parser.add_argument('--video-path', type=str, default=0, help="test image path")
     
-    if let:
-        results = model(frame)
+    args = parser.parse_args()
+    return args
+
+def main(args):
+    ckpt_path = args.checkpoint
+    video_path = args.video_path
+    
+    model = YOLO(ckpt_path, task="detect")
+    
+    cap = cv2.VideoCapture(video_path)
+    
+    if not cap.isOpened():
+        print("Failed to load video")
         
-        vis_frame = results[0].plot()
+        return
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
         
-        cv2.imshow("Inference", vis_frame)
-        
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+        if ret:
+            results = model(frame)
+            
+            vis_frame = results[0].plot()
+            
+            cv2.imshow("Inference", vis_frame)
+            
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+            
+        else:
             break
         
-    else:
-        break
-    
-cap.release()
-cv2.destroyAllWindows()
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    args = parse_opt()
+    main(args)

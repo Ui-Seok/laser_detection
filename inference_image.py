@@ -1,15 +1,31 @@
+import argparse
+
 from ultralytics import YOLO
 
-# path of checkpoint
-ckpt_path = "runs/detect/train8/weights/best.pt"
 
-# save path
-save_path = "result.png"
+def parse_opt():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--checkpoint', type=str, required=True, help="model checkpoint path")
+    parser.add_argument('--test-image', type=str, required=True, help="test image path")
 
-# test dataset
-img = "datasets/laser_v6/valid/images/-_mov-0018_jpg.rf.448855c7abe2a6239b2b46e5ac2f5b18.jpg"
+    parser.add_argument('--img-size', type=int, default=640, help="training image size")
+    
+    args = parser.parse_args()
+    return args
 
-# Load a model
-model = YOLO(ckpt_path)
+def main(args):
+    ckpt_path = args.checkpoint
+    
+    test_image = args.test_img
+    
+    model = YOLO(ckpt_path)
+    model.predict(
+        test_image, 
+        save=True, 
+        imgsz=args.img_size
+        )
+    
 
-model.predict(img, save = True, imgsz = 640)
+if __name__ == "__main__":
+    args = parse_opt()
+    main(args)
