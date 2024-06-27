@@ -12,6 +12,8 @@ def parse_opt():
     parser.add_argument('--epochs', type=int, default=200, help="training epochs")
     parser.add_argument('--img-size', type=int, default=640, help="training image size")
     
+    parser.add_argument('--name', type=str, default=None, help="training output directory name")
+    
     args = parser.parse_args()
     return args
 
@@ -28,6 +30,7 @@ def main(args):
         data = data_yaml_file_path, 
         epochs = args.epochs, 
         imgsz = args.img_size,
+        name = args.name,
         cos_lr = True
         )
     
