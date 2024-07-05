@@ -10,6 +10,7 @@ def parse_opt():
     parser.add_argument('--data-yaml-file', type=str, default="datasets/data.yaml", help="dataset yaml file path")
     
     parser.add_argument('--epochs', type=int, default=200, help="training epochs")
+    parser.add_argument('--optimizer', type=str, default="auto", help="Set train optimizer")
     parser.add_argument('--img-size', type=int, default=640, help="training image size")
     
     parser.add_argument('--name', type=str, default=None, help="training output directory name")
@@ -29,9 +30,12 @@ def main(args):
     results = model.train(
         data = data_yaml_file_path, 
         epochs = args.epochs, 
+        optimizer = args.optimizer,
         imgsz = args.img_size,
         name = args.name,
-        cos_lr = True
+        cos_lr = True,
+        hsv_v = 0.8,
+        copy_paste = 0.2
         )
     
     
