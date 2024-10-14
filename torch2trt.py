@@ -1,6 +1,6 @@
 from ultralytics import YOLO
 
-ckpt_path = "runs/detect/train_ori_ep300_im320_ext_data/weights/best.pt"
+ckpt_path = "runs/detect/train_ori_ep300_ext_data/weights/best.pt"
 
 model = YOLO(ckpt_path)
 
