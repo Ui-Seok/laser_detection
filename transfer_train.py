@@ -7,6 +7,7 @@ def parse_opt():
     parser.add_argument('--checkpoint', type=str, required=True)
     parser.add_argument('--data-yaml-file', type=str, default="datasets/data.yaml")
     parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--batch', type=int, default=16)
     parser.add_argument('--img-size', type=int, default=480)
     parser.add_argument('--optimizer', type=str, default='auto')
     parser.add_argument('--name', type=str, default=None)
@@ -27,6 +28,7 @@ def main(args):
     results = model.train(
         data=args.data_yaml_file,
         epochs=args.epochs,
+        batch=args.batch,
         imgsz=args.img_size,
         optimizer=args.optimizer,
         name=args.name,
