@@ -16,7 +16,7 @@ def parse_opt():
 def main(args):
     ckpt_path = args.checkpoint
     
-    test_image = args.test_img
+    test_image = args.test_image
     
     model = YOLO(ckpt_path)
     model.predict(

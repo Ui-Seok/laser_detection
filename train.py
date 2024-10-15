@@ -5,6 +5,7 @@ from ultralytics import YOLO
 
 def parse_opt():
     parser = argparse.ArgumentParser()
+    
     parser.add_argument('--model-yaml-file', type=str, default="ultralytics/ultralytics/cfg/models/v8/yolov8.yaml", help="model yaml file path")
     parser.add_argument('--checkpoint', type=str, required=True, help="model checkpoint path")
     parser.add_argument('--data-yaml-file', type=str, default="datasets/data.yaml", help="dataset yaml file path")
@@ -34,8 +35,11 @@ def main(args):
         imgsz = args.img_size,
         name = args.name,
         cos_lr = True,
-        hsv_v = 0.8,
-        copy_paste = 0.2
+        hsv_v = 0.5,
+        # copy_paste = 0.2,
+        iou = 0.5,
+        lr0 = 0.001,
+        lrf = 0.0001
         )
     
     
