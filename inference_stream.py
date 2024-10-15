@@ -8,6 +8,7 @@ def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--checkpoint', type=str, required=True, help="model checkpoint path")
     parser.add_argument('--video-path', type=str, default=0, help="test image path")
+    parser.add_argument('--image-size', type=str, default=320, help="input image(frame) size")
     
     args = parser.parse_args()
     return args
@@ -29,7 +30,10 @@ def main(args):
         ret, frame = cap.read()
         
         if ret:
-            results = model(frame)
+            results = model(
+                frame, 
+                imgsz=args.image_size
+                )
             
             vis_frame = results[0].plot()
             
