@@ -25,7 +25,7 @@ echo "Training started at: ${START_TIME}"
 echo "Starting Stage 1 Training..."
 python multi_stage_train.py \
     --checkpoint ${CHECKPOINT} \
-    --epochs 1 \
+    --epochs 150 \
     --img-size 640 \
     --batch 8 \
     --optimizer AdamW \
@@ -45,7 +45,7 @@ echo "Stage 1 completed. Starting Stage 2..."
 # Stage 2: 전체 네트워크 미세 조정
 python multi_stage_train.py \
     --checkpoint ${STAGE1_WEIGHTS} \
-    --epochs 1 \
+    --epochs 100 \
     --img-size 640 \
     --batch 8 \
     --optimizer AdamW \
@@ -57,7 +57,7 @@ python multi_stage_train.py \
 END_TIME=$(date +"%Y-%m-%d %H:%M:%S")
 
 # 최종 결과 확인
-FINAL_WEIGHTS="runs/train/${MODEL_NAME}_stage2/weights/best.pt"
+FINAL_WEIGHTS="runs/detect/${MODEL_NAME}_stage2/weights/best.pt"
 if [ -f "${FINAL_WEIGHTS}" ]; then
     echo "Training successful!"
     echo "Final weights saved at: ${FINAL_WEIGHTS}"
