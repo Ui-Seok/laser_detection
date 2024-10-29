@@ -12,17 +12,18 @@ def parse_opt():
     parser.add_argument('--optimizer', type=str, default='auto')
     parser.add_argument('--name', type=str, default=None)
     parser.add_argument('--freeze', type=int, default=10)
+    parser.add_argument('--mosaic', type=float, default=1.0)
     
     args = parser.parse_args()
     return args
 
 def main(args):
     model = YOLO(args.checkpoint)
+
+    freeze_list = list(model.model.parameters())[:args.freeze]
+    for param in freeze_list:
+        param.requires_grad = False
     
-    for i, layer in enumerate(model.model.parameters()):
-        if i < args.freeze:
-            layer.required_grad = False
-            
     model.model.nc = 2
     
     results = model.train(
@@ -34,11 +35,16 @@ def main(args):
         name=args.name,
         cos_lr=True,
         freeze=args.freeze,
-        hsv_v = 0.5,
-        # copy_paste = 0.2,
-        iou = 0.5,
-        lr0 = 0.001,
-        lrf = 0.0001
+        mosaic=args.mosaic,
+        perspective=0.0003,
+        hsv_s=0.4,
+        hsv_v=0.4,
+        scale=0.1,
+        iou=0.5,
+        lr0=0.001,
+        lrf=0.0001,
+        label_smoothing=0.1,       # 라벨 스무딩
+        mixup=0.1,                 # mixup 추가
     )
     
 if __name__ == "__main__":
