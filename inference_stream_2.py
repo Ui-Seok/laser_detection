@@ -7,10 +7,10 @@ from ultralytics import YOLO
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--checkpoint', type=str, default="runs/new_transfer_single_stage/weights/best.pt", help="model checkpoint path")
+    parser.add_argument('--checkpoint', type=str, default="/home/jetson/models/yolov11_s_laser/laser_detector_s_laser2/weights/best.pt", help="model checkpoint path")
     parser.add_argument('--video-path', type=str, default=0, help="test image path")
     parser.add_argument('--image-size', type=str, default=640, help="input image(frame) size")
-    parser.add_argument('--conf', type=float, default=0.1, help="input image(frame) size")
+    parser.add_argument('--conf', type=float, default=0.4, help="input image(frame) size")
     parser.add_argument('--iou', type=float, default=0.4, help="input image(frame) size")
     parser.add_argument('--augment', type=bool, default=False, help="input image(frame) size")
     parser.add_argument('--agnostic_nms', type=bool, default=False, help="input image(frame) size")
@@ -60,14 +60,14 @@ def enhance_laser_visibility(frame):
 
     return cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
 
-def is_point_in_bbox(laser_box, face_box):
+def is_point_in_bbox(laser_box, face_box, horizontal, vertical):
     # Get center point of laser box
     laser_center_x = (laser_box[0] + laser_box[2]) / 2
     laser_center_y = (laser_box[1] + laser_box[3]) / 2
     
     # Check if laser center point is within face box
-    if (face_box[0] <= laser_center_x <= face_box[2] and 
-        face_box[1] <= laser_center_y <= face_box[3]):
+    if (face_box[0]- horizontal/5 <= laser_center_x <= face_box[2] + horizontal/5 and 
+        face_box[1] - vertical/5 <= laser_center_y <= face_box[3] + vertical/100):
         return True
     return False
 
@@ -76,6 +76,7 @@ def main(args):
     video_path = args.video_path
     
     model = YOLO(ckpt_path, task="detect")
+    model_f = YOLO('yolov8n-face.pt', task="detect")
     
     cap = cv2.VideoCapture(video_path)
     
@@ -84,14 +85,15 @@ def main(args):
         
         return
 
-    scale_factor = 2
+    scale_factor = 1
 
     while cap.isOpened():
         ret, frame = cap.read()
         
         
         if ret:
-            frame = cv2.rotate(frame, cv2.ROTATE_180)
+            frame = cv2.rotate(frame, cv2.ROTATE_180)   # CAMERA ROTATED
+            
             # processed_frame = apply_preprocessing(frame)
             # brightness = cv2.getTrackbarPos('Brightness', 'Controls') - 50
             # contrast = cv2.getTrackbarPos('Contrast', 'Controls') / 100.0
@@ -109,31 +111,73 @@ def main(args):
                 agnostic_nms=False
                 )
             
+
+            results_f = model_f(
+                frame, 
+                imgsz=args.image_size,
+                conf=args.conf,
+                iou=0.5,
+                augment=args.augment,
+                agnostic_nms=False
+                )
             # Get face and laser coordinates
-            face_indices = (results[0].boxes.cls == 1)  # Class 1 is face
+            face_indices = (results_f[0].boxes.cls == 0)  # Class 1 is face
             laser_indices = (results[0].boxes.cls == 0)  # Class 0 is laser-point
             
-            face_boxes = results[0].boxes.xyxy[face_indices]
+            face_boxes = results_f[0].boxes.xyxy[face_indices]
             laser_boxes = results[0].boxes.xyxy[laser_indices]
             
             alert = "SAFE!"
             a_color = (0, 255, 0)
             # Check if laser points are in any face
+
+
+            if len(face_boxes) > 0:
+                for face_box in face_boxes:
+                    horizontal = face_box[2] - face_box[0]
+                    vertical = face_box[3] - face_box[1]
+                    cv2.rectangle(
+                        frame,
+                        (int(face_box[0] - horizontal/5), int(face_box[1] - vertical/5)),
+                        (int(face_box[2] + horizontal/5), int(face_box[3] + vertical/100)),
+                        (0, 0, 255),  # Red color in BGR
+                        3  # Thickness
+                    )
+
+            if len(laser_boxes) > 0:
+                for laser_box in laser_boxes:
+                    cv2.rectangle(
+                        frame,
+                        (int(laser_box[0]), int(laser_box[1])),
+                        (int(laser_box[2]), int(laser_box[3])),
+                        (255, 0, 0),  # Red color in BGR
+                        3  # Thickness
+                    )
+
             if len(laser_boxes) > 0 and len(face_boxes) > 0:
                 for laser_box in laser_boxes:
+                    # cv2.rectangle(
+                    #     frame,
+                    #     (int(laser_box[0]), int(laser_box[1])),
+                    #     (int(laser_box[2]), int(laser_box[3])),
+                    #     (255, 0, 0),  # Red color in BGR
+                    #     3  # Thickness
+                    # )
                     for face_box in face_boxes:
-                        if is_point_in_bbox(laser_box, face_box):
+                        horizontal = face_box[2] - face_box[0]
+                        vertical = face_box[3] - face_box[1]
+                        if is_point_in_bbox(laser_box, face_box, horizontal, vertical):
                             # Draw red rectangle around the face for alert
-                            cv2.rectangle(
-                                frame,
-                                (int(face_box[0]), int(face_box[1])),
-                                (int(face_box[2]), int(face_box[3])),
-                                (0, 0, 255),  # Red color in BGR
-                                3  # Thickness
-                            )
                             alert = "WARNING!"
                             a_color = (0, 0, 255)
             # Add warning text
+
+            
+            # vis_frame = results[0].plot()
+            
+            # vis_frame = cv2.resize(frame, (frame.shape[1] * scale_factor, frame.shape[0] * scale_factor))
+
+            # frame_rotated = cv2.rotate(frame, cv2.ROTATE_180)            
             cv2.putText(
                 frame,
                 alert,
@@ -143,12 +187,11 @@ def main(args):
                 a_color,
                 3
             )
-            
-            vis_frame = results[0].plot()
-            
-            vis_frame = cv2.resize(vis_frame, (frame.shape[1] * scale_factor, frame.shape[0] * scale_factor))
 
-            cv2.imshow("Inference", vis_frame)
+            frame = cv2.resize(frame, (frame.shape[1] * scale_factor, frame.shape[0] * scale_factor))
+            cv2.imshow("Inference", frame)
+
+
             
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
