@@ -3,6 +3,6 @@ runs/
 
 *.jpeg
 *.jpg
+*.png
 
-*.pt
 *.npy
