@@ -3,13 +3,19 @@
 import cv2
 import argparse
 import numpy as np
+import Jetson.GPIO as GPIO
 
 from ultralytics import YOLO
+
+led_pin = 15
+
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(led_pin, GPIO.OUT, initial=GPIO.HIGH)
 
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--checkpoint', type=str, default="/home/jetson/models/yolov11_s_laser/laser_detector_s_laser2/weights/best.pt", help="model checkpoint path")
+    parser.add_argument('--checkpoint', type=str, default="/home/ubuntu/laser_detection/models/yolov11_s_laser/laser_detector_s_laser2/weights/best.pt", help="model checkpoint path")
     parser.add_argument('--video-path', type=str, default=0, help="test image path")
     parser.add_argument('--image-size', type=str, default=640, help="input image(frame) size")
     parser.add_argument('--conf', type=float, default=0.4, help="input image(frame) size")
@@ -71,6 +77,9 @@ def is_point_in_bbox(laser_box, face_box, horizontal, vertical):
     if (face_box[0]- horizontal/5 <= laser_center_x <= face_box[2] + horizontal/5 and 
         face_box[1] - vertical/5 <= laser_center_y <= face_box[3] + vertical/100):
         return True
+    # if (face_box[0] <= laser_center_x <= face_box[2] and 
+    #     face_box[1] <= laser_center_y <= face_box[3]):
+    #     return True
     return False
 
 def main(args):
@@ -89,9 +98,12 @@ def main(args):
 
     scale_factor = 1
 
+    alert = "SAFE!"
+    GPIO.output(led_pin, GPIO.HIGH)
+    a_color = (0, 255, 0)
+
     while cap.isOpened():
         ret, frame = cap.read()
-        
         
         if ret:
             frame = cv2.rotate(frame, cv2.ROTATE_180)   # CAMERA ROTATED
@@ -110,9 +122,9 @@ def main(args):
                 conf=args.conf,
                 iou=args.iou,
                 augment=args.augment,
-                agnostic_nms=False
+                agnostic_nms=False,
+                verbose=False
                 )
-            
 
             results_f = model_f(
                 frame, 
@@ -120,8 +132,10 @@ def main(args):
                 conf=args.conf,
                 iou=0.5,
                 augment=args.augment,
-                agnostic_nms=False
+                agnostic_nms=False,
+                verbose=False
                 )
+            
             # Get face and laser coordinates
             face_indices = (results_f[0].boxes.cls == 0)  # Class 1 is face
             laser_indices = (results[0].boxes.cls == 0)  # Class 0 is laser-point
@@ -129,11 +143,11 @@ def main(args):
             face_boxes = results_f[0].boxes.xyxy[face_indices]
             laser_boxes = results[0].boxes.xyxy[laser_indices]
             
-            alert = "SAFE!"
-            a_color = (0, 255, 0)
+            # alert = "SAFE!"
+            # GPIO.output(led_pin, GPIO.HIGH)
+            # a_color = (0, 255, 0)
+
             # Check if laser points are in any face
-
-
             if len(face_boxes) > 0:
                 for face_box in face_boxes:
                     horizontal = face_box[2] - face_box[0]
@@ -155,9 +169,16 @@ def main(args):
                         (255, 0, 0),  # Red color in BGR
                         3  # Thickness
                     )
+            else:
+                alert = "SAFE!"
+                GPIO.output(led_pin, GPIO.HIGH)
+                a_color = (0, 255, 0)
 
             if len(laser_boxes) > 0 and len(face_boxes) > 0:
+                found = False
                 for laser_box in laser_boxes:
+                    if found:
+                        break
                     # cv2.rectangle(
                     #     frame,
                     #     (int(laser_box[0]), int(laser_box[1])),
@@ -171,9 +192,18 @@ def main(args):
                         if is_point_in_bbox(laser_box, face_box, horizontal, vertical):
                             # Draw red rectangle around the face for alert
                             alert = "WARNING!"
+                            GPIO.output(led_pin, GPIO.LOW)
                             a_color = (0, 0, 255)
-            # Add warning text
+                            found = True
+                            break
+                        else:
+                            # if not found:
+                            alert = "SAFE!"
+                            GPIO.output(led_pin, GPIO.HIGH)
+                            a_color = (0, 255, 0)
 
+            # Add warning text
+            print(len(face_boxes), len(laser_boxes), alert)
             
             # vis_frame = results[0].plot()
             
@@ -196,6 +226,8 @@ def main(args):
 
             
             if cv2.waitKey(1) & 0xFF == ord("q"):
+                print("Exiting")
+                GPIO.cleanup()
                 break
             
         else:
