@@ -176,16 +176,11 @@ def main(args):
 
             if len(laser_boxes) > 0 and len(face_boxes) > 0:
                 found = False
+                # alert = "SAFE!"
+                # GPIO.output(led_pin, GPIO.HIGH)
+                # a_color = (0, 255, 0)
+
                 for laser_box in laser_boxes:
-                    if found:
-                        break
-                    # cv2.rectangle(
-                    #     frame,
-                    #     (int(laser_box[0]), int(laser_box[1])),
-                    #     (int(laser_box[2]), int(laser_box[3])),
-                    #     (255, 0, 0),  # Red color in BGR
-                    #     3  # Thickness
-                    # )
                     for face_box in face_boxes:
                         horizontal = face_box[2] - face_box[0]
                         vertical = face_box[3] - face_box[1]
@@ -196,11 +191,18 @@ def main(args):
                             a_color = (0, 0, 255)
                             found = True
                             break
-                        else:
-                            # if not found:
-                            alert = "SAFE!"
-                            GPIO.output(led_pin, GPIO.HIGH)
-                            a_color = (0, 255, 0)
+                        # else:
+                        #     # if not found:
+                        #     alert = "SAFE!"
+                        #     GPIO.output(led_pin, GPIO.HIGH)
+                        #     a_color = (0, 255, 0)
+                    if 'found' in locals() and found:
+                        break
+                    else:
+                        alert = "SAFE!"
+                        GPIO.output(led_pin, GPIO.HIGH)
+                        a_color = (0, 255, 0)
+                        break
 
             # Add warning text
             print(len(face_boxes), len(laser_boxes), alert)
