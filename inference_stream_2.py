@@ -224,8 +224,6 @@ def main(args):
 
             frame = cv2.resize(frame, (frame.shape[1] * scale_factor, frame.shape[0] * scale_factor))
             cv2.imshow("Inference", frame)
-
-
             
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 print("Exiting")
