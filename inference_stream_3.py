@@ -43,7 +43,7 @@ class BLEController:
             print("Disconnected")
 
     def disconnect(self):
-        self.loop.run_until_complete(self._async_disconnect)
+        self.loop.run_until_complete(self._async_disconnect())
 
     async def _async_send_command(self, data):
         if self.client and self.client.is_connected:
@@ -178,7 +178,12 @@ def main(args):
 
     ble_controller = BLEController(XAIO_ADDRESS, RELAY_CHARACTERISTIC_UUID)
 
-    ble_controller.connect()
+    try:
+        print("Initializing BLE connection ... ")
+        ble_controller.connect()
+    except Exception as e:
+        print(f"FATAL: Failed to connect to BLE device. Error: {e}")
+        return
 
     try:
         for frame in get_mjpeg_frames(video_path):
